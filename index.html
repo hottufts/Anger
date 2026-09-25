@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Sorting board v2</title>
+<style>
+:root{
+  --ground:#D9DCCB;--panel:#E8EADD;--card:#F3F4EA;--ink:#22201C;--muted:#55564A;--line:#B7BAA3;
+  --accent:#D8341F;--accent-ink:#A32412;--ok:#3E5A35;--warn:#7A4E00;
+  --heat1:#9AA08A;--heat2:#C9922E;--heat3:#D8341F;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--ground)}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.5 var(--sans)}
+body.has-dock{padding-bottom:170px}
+.wrap{max-width:1040px;margin:0 auto;padding:18px 14px 48px}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+h1{font:400 30px/1.1 var(--serif);margin:0;letter-spacing:-.01em}
+h2{font:400 21px/1.2 var(--serif);margin:0}
+h3{font:400 17px/1.2 var(--serif);margin:0}
+.ver{font:400 14px var(--sans);color:var(--muted);margin-left:4px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:6px}
+.topr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+nav{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{font:inherit;background:transparent;border:0;border-bottom:3px solid transparent;padding:8px 12px;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tab[aria-current=page]{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+.bk{font:inherit;font-size:13px;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.bk.warn{color:var(--warn);font-weight:600}
+.btn{font:inherit;font-size:14px;border:1px solid var(--ink);background:transparent;color:var(--ink);padding:6px 14px;border-radius:6px;cursor:pointer;min-height:38px}
+.btn:hover{background:rgba(34,32,28,.09)}
+.btn.primary{background:var(--ink);color:var(--card)}
+.btn.primary:hover{background:#000}
+.btn.quiet{border-color:var(--line);background:var(--card)}
+.btn.danger{border-color:var(--accent-ink);color:var(--accent-ink)}
+.btn.small{min-height:32px;padding:3px 10px;font-size:13px}
+input,select,textarea{font:inherit;font-size:15px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-height:40px}
+input[type=checkbox]{width:18px;height:18px;min-height:0;padding:0;accent-color:var(--ink);flex:none;margin-top:2px}
+textarea{resize:vertical;line-height:1.45}
+input::placeholder,textarea::placeholder{color:#75766A}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.caprow{display:flex;gap:8px;margin-bottom:6px}
+.caprow input{flex:1;min-width:0}
+.cap .row{justify-content:flex-start;margin-top:8px}
+.err{color:var(--accent-ink);font-size:13px;margin-top:4px}
+.err:empty{display:none}
+.ok{color:var(--ok);font-size:14px}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0}
+.cnt{font:400 14px var(--sans);color:var(--muted);margin-left:4px}
+.sec{display:flex;align-items:center;justify-content:space-between;margin:18px 0 8px}
+#status{min-height:20px;font-size:13px;color:var(--muted);margin:0 0 6px}
+.warnbar{background:var(--card);border:1px solid var(--accent-ink);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:13px;display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);background:var(--card);border-radius:6px;cursor:pointer;color:var(--ink);min-height:36px}
+.seg button[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:600}
+.sw{width:10px;height:10px;border-radius:50%;background:var(--h,var(--line));flex:none}
+.h1{--h:var(--heat1)}.h2{--h:var(--heat2)}.h3{--h:var(--heat3)}
+.pile{border:1.5px dashed var(--line);border-radius:10px;padding:10px;min-height:64px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;align-content:start}
+.pile.over,.lane.over{outline:2px dashed var(--ink);outline-offset:-3px}
+.lanes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+@media(min-width:760px){.lanes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lane{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:130px}
+.lane.armed{border-color:var(--ink);cursor:pointer}
+.lane.l-role{border-style:dashed;border-color:var(--muted);grid-column:1/-1}
+@media(min-width:760px){.lane.l-role{grid-column:span 2}}
+.lane.l-over{background:transparent}
+.lh{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.dist{display:flex;height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin:7px 0 8px}
+.item{display:block;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--h,var(--line));border-radius:6px;padding:7px 9px;margin-top:6px;cursor:grab;font-size:14px;line-height:1.35;text-align:left;word-break:break-word}
+.pile .item{margin-top:0}
+.item.sel{outline:2px solid var(--ink);outline-offset:1px}
+.item.dragging{opacity:.4}
+.item.static{cursor:default;margin-top:0}
+.item .hl,.item .mv{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.item .mv{color:var(--warn);font-weight:600}
+.empty{color:var(--muted);font-size:13px;padding:6px 2px}
+body.hide .txt,body.hide #selText,body.hide .dtxt{filter:blur(7px);user-select:none}
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:2px solid var(--ink);padding:10px 14px 14px;z-index:5;max-height:72vh;overflow:auto}
+.dock-in{max-width:1040px;margin:0 auto}
+.dtxt{font-size:15px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dock .row+.row{margin-top:8px}
+.dock .sub{color:var(--muted);font-size:12.5px}
+.dd{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.hist{list-style:none;margin:6px 0 0;padding:0;font-size:13px}
+.hist li{padding:6px 0;border-top:1px solid var(--line)}
+.ht{display:block;color:var(--muted);font-size:12px}
+.linkbtn{font:inherit;font-size:13px;background:none;border:0;padding:0 0 0 6px;color:var(--ink);text-decoration:underline;cursor:pointer}
+summary{cursor:pointer;font-size:14px}
+.filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.f.wide{grid-column:1/-1}
+@media(min-width:760px){.filters{grid-template-columns:2fr 1fr 1fr 1fr 1fr}.f.wide{grid-column:auto}}
+.cat{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--h,var(--line));border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.cat .ct{font-size:15px;word-break:break-word}
+.cat .meta{font-size:13px;color:var(--muted);margin-top:2px}
+.cat .mv{font-size:12.5px;color:var(--warn);font-weight:600}
+.cat .row{justify-content:flex-start;margin-top:8px}
+.lrow{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;padding-top:8px}
+.lrow .dist{margin:4px 0 0}
+.wl{list-style:none;margin:8px 0 0;padding:0}
+.wl li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.wl .ch{color:var(--ok);white-space:nowrap;font-weight:600}
+.le{margin-top:10px}
+.le .seg{margin-top:6px}
+.keep{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.dayrow{border-top:1px solid var(--line)}
+.dayhead{font:inherit;width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:none;border:0;padding:11px 26px 11px 0;text-align:left;cursor:pointer;color:var(--ink);position:relative;min-height:44px}
+.dayhead .dh{font:400 17px/1.25 var(--serif)}
+.dayhead .dp{font-size:13px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dayhead::after{content:"";position:absolute;right:6px;top:18px;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg)}
+.dayhead[aria-expanded=true]::after{transform:rotate(-135deg);top:21px}
+.dbody{padding:0 0 12px}
+.pre{white-space:pre-wrap;font-size:13.5px}
+.stack>*+*{margin-top:10px}
+textarea.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;min-height:130px}
+@media(prefers-reduced-motion:no-preference){.item,.lane,.btn{transition:border-color .12s,background .12s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Sorting board <span class="ver">v2</span></h1>
+    <div class="topr">
+      <button id="bk" class="bk" data-act="nav" data-v="backup"></button>
+      <button class="btn small" data-act="hide" id="hideBtn" aria-pressed="false">Hide text</button>
+    </div>
+  </header>
+  <nav aria-label="Sections">
+    <button class="tab" data-act="nav" data-v="board">Board</button>
+    <button class="tab" data-act="nav" data-v="catalog">Catalog</button>
+    <button class="tab" data-act="nav" data-v="wrap">Wrap up</button>
+    <button class="tab" data-act="nav" data-v="backup">Backup</button>
+  </nav>
+  <div id="warn" class="warnbar" hidden>This browser isn't letting the board save. Create a backup before you close the tab.</div>
+  <p id="status" role="status"></p>
+  <main id="view"></main>
+</div>
+<div id="dock" class="dock" hidden></div>
+
+<script>
+(function(){
+'use strict';
+
+var KEY='sortboard.v1';
+var LANES=[
+  {k:'fix',n:'Mine to fix'},
+  {k:'not',n:'Not mine'},
+  {k:'cant',n:"Can't control"},
+  {k:'over',n:'Already over'},
+  {k:'role',n:'Outside my role'}
+];
+var LN={pile:'Pile',wait:'Waiting on someone'};
+LANES.forEach(function(l){LN[l.k]=l.n});
+var LKEYS=['pile'].concat(LANES.map(function(l){return l.k}));
+var HN={1:'Low',2:'Medium',3:'High'};
+
+var ui={view:'board',sel:null,dockOpen:false,confirmDel:null,undo:[],capHeat:2,drag:null,saveOk:true,pending:null,flashT:null,
+  cat:{q:'',lane:'all',heat:'all',status:'active',sort:'new'},
+  wrap:{note:'',dec:{},keep:{},done:null,editing:null,editText:'',pq:'',again:false,compact:false,open:{},showAll:false}};
+var migrated=false;
+function okLane(k){return LKEYS.indexOf(k)>-1||k==='wait'}
+
+function blank(){return {items:[],days:[],lastBackup:null,nid:1}}
+
+function clean(s){
+  if(!s||!Array.isArray(s.items))return null;
+  var out={items:[],days:[],lastBackup:(typeof s.lastBackup==='number')?s.lastBackup:null,nid:1};
+  s.items.forEach(function(i){
+    if(!i||typeof i.text!=='string')return;
+    var id=+i.id;if(!id)return;
+    var heat=(i.heat>=1&&i.heat<=3)?+i.heat:2;
+    var wasWait=(i.lane==='wait');
+    var lane=LKEYS.indexOf(i.lane)>-1?i.lane:'pile';
+    var hist=Array.isArray(i.history)?i.history.filter(function(h){
+      if(!h||typeof h.at!=='number')return false;
+      if(h.type==='created')return h.heat>=1&&h.heat<=3;
+      if(h.type==='move')return okLane(h.from)&&okLane(h.to);
+      if(h.type==='heat')return h.from>=1&&h.from<=3&&h.to>=1&&h.to<=3;
+      return false;
+    }):[];
+    if(!hist.length)hist=[{at:(typeof i.created==='number'?i.created:Date.now()),type:'created',heat:heat}];
+    if(wasWait){hist.push({at:Date.now(),type:'move',from:'wait',to:'pile'});migrated=true}
+    out.items.push({id:id,text:i.text.slice(0,500),heat:heat,lane:lane,created:(typeof i.created==='number'?i.created:hist[0].at),archived:!!i.archived,archivedAt:i.archivedAt||null,archiveReason:i.archiveReason||null,history:hist});
+    out.nid=Math.max(out.nid,id+1);
+  });
+  if(Array.isArray(s.days))s.days.forEach(function(d){
+    if(d&&typeof d.date==='string')out.days.push({date:d.date,at:+d.at||0,note:typeof d.note==='string'?d.note.slice(0,2000):'',touched:+d.touched||0,cooled:+d.cooled||0,archived:+d.archived||0,counts:d.counts||{}});
+  });
+  return out;
+}
+
+function load(){
+  try{
+    localStorage.setItem(KEY+'.t','1');localStorage.removeItem(KEY+'.t');
+    var r=localStorage.getItem(KEY);
+    if(!r)return blank();
+    return clean(JSON.parse(r))||blank();
+  }catch(e){ui.saveOk=false;return blank()}
+}
+var state=load();
+var view=document.getElementById('view');
+if(migrated)save();
+
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(state));ui.saveOk=true}
+  catch(e){ui.saveOk=false}
+  document.getElementById('warn').hidden=ui.saveOk;
+  updateBk();
+}
+
+function $(s,r){return (r||document).querySelector(s)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function now(){return Date.now()}
+function p2(n){return n<10?'0'+n:''+n}
+function dayKey(t){var d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function fmt(t){return new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+function fmtShort(t){return new Date(t).toLocaleDateString([],{month:'short',day:'numeric'})}
+function fmtDay(k){var p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})}
+function getItem(id){for(var i=0;i<state.items.length;i++){if(state.items[i].id===id)return state.items[i]}return null}
+function active(){return state.items.filter(function(i){return !i.archived})}
+function moves(it){return it.history.filter(function(h){return h.type==='move'}).length}
+function lname(k){return LN[k]||k}
+
+function flash(msg){
+  var el=document.getElementById('status');
+  el.textContent=msg;
+  clearTimeout(ui.flashT);
+  ui.flashT=setTimeout(function(){el.textContent=''},4000);
+}
+
+function copyText(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(t).then(function(){return true},function(){return fallbackCopy(t)});
+  }
+  return Promise.resolve(fallbackCopy(t));
+}
+function fallbackCopy(t){
+  var ta=document.createElement('textarea');
+  ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  var ok=false;try{ok=document.execCommand('copy')}catch(e){}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+/* ---------- data actions ---------- */
+function addItem(text,h){
+  var t=now();
+  state.items.push({id:state.nid++,text:text,heat:h,lane:'pile',created:t,archived:false,archivedAt:null,archiveReason:null,history:[{at:t,type:'created',heat:h}]});
+  save();
+}
+function moveItem(id,lane,noUndo){
+  var it=getItem(id);
+  if(!it||it.lane===lane)return;
+  var from=it.lane;
+  it.lane=lane;
+  it.history.push({at:now(),type:'move',from:from,to:lane});
+  if(!noUndo)ui.undo.push({id:id,kind:'move',from:from,to:lane});
+  save();
+}
+function setHeat(id,h){
+  var it=getItem(id);
+  if(!it||it.heat===h)return;
+  var from=it.heat;
+  it.heat=h;
+  it.history.push({at:now(),type:'heat',from:from,to:h});
+  ui.undo.push({id:id,kind:'heat',from:from,to:h});
+  save();
+}
+function undo(){
+  var u=ui.undo.pop();
+  if(!u)return false;
+  var it=getItem(u.id);
+  if(!it)return true;
+  var last=it.history[it.history.length-1];
+  if(u.kind==='move')it.lane=u.from;else it.heat=u.from;
+  if(last&&last.type===u.kind)it.history.pop();
+  save();
+  return true;
+}
+
+/* ---------- shared bits ---------- */
+function heatSeg(cur,act){
+  var s='';
+  for(var h=1;h<=3;h++)s+='<button class="h'+h+'" data-act="'+act+'" data-h="'+h+'" aria-pressed="'+(cur===h)+'"><span class="sw"></span>'+HN[h]+'</button>';
+  return s;
+}
+function distHTML(arr){
+  var c=[0,0,0,0];arr.forEach(function(i){c[i.heat]++});
+  var s='';
+  for(var h=3;h>=1;h--){if(c[h])s+='<span style="flex:'+c[h]+';background:var(--heat'+h+')"></span>'}
+  return '<div class="dist" aria-hidden="true">'+s+'</div>';
+}
+function histHTML(it,ro){
+  var li=it.history.slice().reverse().map(function(h){
+    var s;
+    if(h.type==='created')s='Added with '+HN[h.heat].toLowerCase()+' heat';
+    else if(h.type==='move'){
+      s='Moved from '+esc(lname(h.from))+' to '+esc(lname(h.to));
+      if(!ro&&it.lane!==h.from&&LKEYS.indexOf(h.from)>-1)s+='<button class="linkbtn" data-act="hback" data-id="'+it.id+'" data-lane="'+h.from+'">Move back to '+esc(lname(h.from))+'</button>';
+    }else s='Heat changed from '+HN[h.from].toLowerCase()+' to '+HN[h.to].toLowerCase();
+    return '<li><span class="ht">'+fmt(h.at)+'</span>'+s+'</li>';
+  }).join('');
+  return '<ul class="hist">'+li+'</ul>';
+}
+function itemHTML(it){
+  var mv=moves(it);
+  return '<div class="item h'+it.heat+(ui.sel===it.id?' sel':'')+'" draggable="true" tabindex="0" role="button" data-item="'+it.id+'" aria-label="'+esc(it.text)+', '+HN[it.heat].toLowerCase()+' heat'+(ui.sel===it.id?', selected':'')+'">'+
+    '<span class="txt">'+esc(it.text)+'</span><span class="hl">'+HN[it.heat]+' heat</span>'+
+    (mv>=3?'<span class="mv">Moved '+mv+' times</span>':'')+'</div>';
+}
+
+function updateBk(){
+  var el=document.getElementById('bk');
+  var has=state.items.length>0||state.days.length>0;
+  if(!has&&!state.lastBackup){el.textContent='';el.className='bk';return}
+  if(!state.lastBackup){el.textContent='No backup yet';el.className='bk warn';return}
+  var d=Math.floor((now()-state.lastBackup)/86400000);
+  el.textContent=d<1?'Backed up today':'Backed up '+d+(d===1?' day':' days')+' ago';
+  el.className='bk'+(d>=7?' warn':'');
+}
+
+/* ---------- views ---------- */
+function setView(v){
+  ui.view=v;ui.wrap.done=null;ui.wrap.editing=null;ui.wrap.again=false;
+  if(v!=='board'){ui.sel=null;ui.dockOpen=false;ui.confirmDel=null}
+  document.querySelectorAll('.tab').forEach(function(t){
+    if(t.dataset.v===v)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');
+  });
+  if(v==='board')buildBoard();
+  else if(v==='catalog')buildCatalog();
+  else if(v==='wrap')renderWrap();
+  else buildBackup();
+  renderDock();
+  window.scrollTo(0,0);
+}
+
+/* board */
+function buildBoard(){
+  view.innerHTML=
+  '<section class="card cap" aria-label="Add an item">'+
+    '<label class="lbl" for="txt">New item</label>'+
+    '<div class="caprow"><input id="txt" type="text" maxlength="200" autocomplete="off" placeholder="Type what set you off"><button class="btn primary" data-act="add">Add</button></div>'+
+    '<div id="err" class="err" role="alert"></div>'+
+    '<div class="row"><span class="lbl" style="margin:0">Heat</span><div id="capHeat" class="seg"></div></div>'+
+  '</section>'+
+  '<div class="sec"><h2>Pile <span id="pcnt" class="cnt"></span></h2><button class="btn quiet small" data-act="undo">Undo</button></div>'+
+  '<div id="pile" class="pile" data-lane="pile"></div>'+
+  '<p class="hint">Tap an item, then tap a lane. On a computer you can drag it instead.</p>'+
+  '<div id="lanes" class="lanes"></div>';
+  renderBoard();
+}
+function renderBoard(){
+  if(ui.view!=='board')return;
+  var ch=$('#capHeat');if(ch)ch.innerHTML=heatSeg(ui.capHeat,'caph');
+  renderPile();renderLanes();renderDock();
+}
+function renderPile(){
+  var el=$('#pile');if(!el)return;
+  var list=active().filter(function(i){return i.lane==='pile'}).sort(function(a,b){return b.created-a.created});
+  $('#pcnt').textContent=list.length?'('+list.length+')':'';
+  el.innerHTML=list.length?list.map(itemHTML).join(''):'<div class="empty">The pile is clear. Add what\'s bugging you above.</div>';
+}
+function renderLanes(){
+  var el=$('#lanes');if(!el)return;
+  var armed=ui.sel!==null;
+  var all=active();
+  el.innerHTML=LANES.map(function(L){
+    var list=all.filter(function(i){return i.lane===L.k}).sort(function(a,b){return b.heat-a.heat||b.created-a.created});
+    return '<section class="lane l-'+L.k+(armed?' armed':'')+'" data-lane="'+L.k+'" aria-label="'+esc(L.n)+'">'+
+      '<div class="lh"><h3>'+esc(L.n)+'</h3><span class="cnt">'+list.length+'</span></div>'+
+      distHTML(list)+
+      (list.length?list.map(itemHTML).join(''):'<div class="empty">Nothing here.</div>')+
+    '</section>';
+  }).join('');
+}
+function renderDock(){
+  var d=document.getElementById('dock');
+  var it=(ui.view==='board'&&ui.sel!==null)?getItem(ui.sel):null;
+  if(!it||it.archived){d.hidden=true;d.innerHTML='';document.body.classList.remove('has-dock');return}
+  var det='';
+  if(ui.dockOpen){
+    det='<div class="dd stack">'+
+      '<div><label class="lbl" for="selText">Edit text</label><input id="selText" type="text" maxlength="200" value="'+esc(it.text)+'"></div>'+
+      '<div class="row" style="justify-content:flex-start">'+
+        (it.lane!=='pile'?'<button class="btn small" data-act="topile">Back to pile</button>':'')+
+        '<button class="btn small danger" data-act="del">'+(ui.confirmDel===it.id?'Delete for good':'Delete')+'</button>'+
+      '</div>'+
+      '<div><strong style="font-size:14px;font-weight:600">History</strong>'+histHTML(it,false)+'</div>'+
+    '</div>';
+  }
+  d.innerHTML='<div class="dock-in">'+
+    '<div class="row"><span class="dtxt">'+esc(it.text)+'</span><button class="btn small" data-act="close">Close</button></div>'+
+    '<div class="row"><div class="seg">'+heatSeg(it.heat,'heat')+'</div><button class="btn small quiet" data-act="dock">'+(ui.dockOpen?'Hide details':'Details')+'</button></div>'+
+    '<div class="sub" style="margin-top:6px">Currently in '+esc(lname(it.lane))+'. Tap a lane to move it.</div>'+
+    det+'</div>';
+  d.hidden=false;
+  document.body.classList.add('has-dock');
+}
+function select(id){
+  ui.sel=(ui.sel===id)?null:id;
+  ui.dockOpen=false;ui.confirmDel=null;
+  renderBoard();
+}
+function place(lane){
+  if(ui.sel===null)return;
+  var it=getItem(ui.sel);
+  if(it&&it.lane!==lane){moveItem(it.id,lane)}
+  ui.sel=null;ui.dockOpen=false;ui.confirmDel=null;
+  renderBoard();
+}
+function doAdd(){
+  var el=$('#txt');if(!el)return;
+  var v=el.value.trim();
+  if(!v){$('#err').textContent='Enter what set you off first.';el.focus();return}
+  addItem(v,ui.capHeat);
+  el.value='';$('#err').textContent='';
+  renderPile();renderLanes();
+  flash('Added to the pile.');
+  el.focus();
+}
+
+/* catalog */
+function buildCatalog(){
+  var lo='<option value="all">All lanes</option>'+LKEYS.map(function(k){return '<option value="'+k+'">'+esc(lname(k))+'</option>'}).join('');
+  view.innerHTML=
+  '<section class="card"><div class="filters">'+
+    '<div class="f wide"><label class="lbl" for="cq">Search</label><input id="cq" type="search" value="'+esc(ui.cat.q)+'" placeholder="Search your items"></div>'+
+    '<div class="f"><label class="lbl" for="cl">Lane</label><select id="cl" data-cf="lane">'+lo+'</select></div>'+
+    '<div class="f"><label class="lbl" for="ch">Heat</label><select id="ch" data-cf="heat"><option value="all">Any heat</option><option value="3">High</option><option value="2">Medium</option><option value="1">Low</option></select></div>'+
+    '<div class="f"><label class="lbl" for="cs">Status</label><select id="cs" data-cf="status"><option value="active">Active</option><option value="archived">Archived</option><option value="all">All</option></select></div>'+
+    '<div class="f"><label class="lbl" for="co">Sort</label><select id="co" data-cf="sort"><option value="new">Newest</option><option value="moved">Most moved</option><option value="hot">Hottest</option></select></div>'+
+  '</div></section><div id="cres"></div>';
+  $('#cl').value=ui.cat.lane;$('#ch').value=ui.cat.heat;$('#cs').value=ui.cat.status;$('#co').value=ui.cat.sort;
+  renderCatalog();
+}
+function renderCatalog(){
+  var el=$('#cres');if(!el)return;
+  var c=ui.cat,q=c.q.toLowerCase();
+  var list=state.items.filter(function(i){
+    if(c.status==='active'&&i.archived)return false;
+    if(c.status==='archived'&&!i.archived)return false;
+    if(c.lane!=='all'&&i.lane!==c.lane)return false;
+    if(c.heat!=='all'&&i.heat!==+c.heat)return false;
+    if(q&&i.text.toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  list.sort(function(a,b){
+    if(c.sort==='moved')return moves(b)-moves(a)||b.created-a.created;
+    if(c.sort==='hot')return b.heat-a.heat||b.created-a.created;
+    return b.created-a.created;
+  });
+  if(!list.length){el.innerHTML='<p class="empty">Nothing matches. Adjust the filters, or add something on the board.</p>';return}
+  el.innerHTML='<p class="hint" style="margin:0 0 8px">'+list.length+(list.length===1?' item':' items')+'</p>'+list.map(function(it){
+    var mv=moves(it);
+    return '<article class="cat h'+it.heat+'">'+
+      '<div class="ct txt">'+esc(it.text)+'</div>'+
+      '<div class="meta">'+esc(lname(it.lane))+', '+HN[it.heat].toLowerCase()+' heat, added '+fmtShort(it.created)+(it.archived?', archived '+fmtShort(it.archivedAt||it.created):'')+'</div>'+
+      (mv>=3?'<div class="mv">Moved '+mv+' times</div>':'')+
+      '<details style="margin-top:6px"><summary>History ('+it.history.length+')</summary>'+histHTML(it,true)+'</details>'+
+      '<div class="row">'+(it.archived?'<button class="btn small" data-act="restore" data-id="'+it.id+'">Restore to pile</button>':'<button class="btn small" data-act="openboard" data-id="'+it.id+'">Open on board</button>')+'</div>'+
+    '</article>';
+  }).join('');
+}
+
+/* wrap up */
+function todayStats(){
+  var tk=dayKey(now());
+  var items=state.items.filter(function(i){return i.history.some(function(h){return dayKey(h.at)===tk})});
+  var by={};LKEYS.forEach(function(k){by[k]=[]});
+  items.forEach(function(i){by[i.lane].push(i)});
+  var cooled=[];
+  items.forEach(function(i){
+    var first=null;
+    for(var j=0;j<i.history.length;j++){
+      var h=i.history[j];
+      if(dayKey(h.at)!==tk)continue;
+      if(h.type==='created'){first=h.heat;break}
+      if(h.type==='heat'){first=h.from;break}
+    }
+    if(first!==null&&i.heat<first)cooled.push({it:i,from:first});
+  });
+  return {tk:tk,items:items,by:by,cooled:cooled};
+}
+function dayRec(k){for(var i=0;i<state.days.length;i++){if(state.days[i].date===k)return state.days[i]}return null}
+function lineBody(d,counts){
+  var h='';
+  if(ui.wrap.editing===d.date){
+    h+='<textarea id="eline" rows="2" maxlength="2000" placeholder="Write a line about this day" style="margin-top:6px"></textarea>'+
+       '<div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn small primary" data-act="saveline" data-date="'+d.date+'">Save line</button><button class="btn small" data-act="cancelline">Cancel</button></div>';
+  }else{
+    if(d.note)h+='<p class="txt pre" style="margin:6px 0 0">'+esc(d.note)+'</p>';
+    h+='<div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn small quiet" data-act="editline" data-date="'+d.date+'">'+(d.note?'Edit line':'Add a line')+'</button></div>';
+  }
+  if(counts)h+='<p class="hint">'+d.touched+(d.touched===1?' item':' items')+' touched, '+d.cooled+' cooled, '+d.archived+' archived</p>';
+  return h;
+}
+function dayRow(d){
+  var open=!!ui.wrap.open[d.date]||ui.wrap.editing===d.date;
+  return '<div class="dayrow"><button class="dayhead" data-act="toggleday" data-date="'+d.date+'" aria-expanded="'+open+'">'+
+    '<span class="dh">'+esc(fmtDay(d.date))+'</span>'+
+    (!open&&d.note?'<span class="dp txt">'+esc(d.note)+'</span>':'')+'</button>'+
+    (open?'<div class="dbody">'+lineBody(d,true)+'</div>':'')+'</div>';
+}
+function renderLines(){
+  var tk=dayKey(now()),tr=dayRec(tk);
+  var top=!!(tr&&(tr.note||ui.wrap.editing===tk||ui.wrap.compact));
+  var tl=$('#todayLine');
+  if(tl)tl.innerHTML=!top?'':(ui.wrap.compact?lineBody(tr,false):'<section class="card"><h2>Your line for today</h2>'+lineBody(tr,false)+'</section>');
+  var pe=$('#past');
+  if(pe){
+    var q=ui.wrap.pq.trim().toLowerCase();
+    var days=state.days.filter(function(d){
+      if(top&&d.date===tk)return false;
+      if(!q)return true;
+      return (d.note||'').toLowerCase().indexOf(q)>-1||fmtDay(d.date).toLowerCase().indexOf(q)>-1;
+    }).sort(function(a,b){return b.date<a.date?-1:b.date>a.date?1:0});
+    var total=days.length,LIM=3,limited=!q&&!ui.wrap.showAll&&total>LIM;
+    var shown=limited?days.slice(0,LIM):days;
+    var html=shown.map(dayRow).join('');
+    if(!total)html='<p class="empty">No wrap-ups match.</p>';
+    if(!q&&total>LIM)html+='<div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn small quiet" data-act="showall">'+(ui.wrap.showAll?'Show fewer':'Show all ('+total+')')+'</button></div>';
+    pe.innerHTML=html;
+  }
+  var el=$('#eline');
+  if(el){el.value=ui.wrap.editText;autosize(el)}
+}
+function renderWrap(){
+  var html='';
+  var st=todayStats();
+  var trec=dayRec(st.tk);
+  var compact=!!(trec&&!ui.wrap.again);
+  ui.wrap.compact=compact;
+  if(compact){
+    html+='<section class="card stack"><h2>Day wrapped</h2>'+
+      '<p class="note" style="margin:0">'+trec.touched+(trec.touched===1?' item':' items')+' touched, '+trec.cooled+' cooled, '+trec.archived+' archived.</p>'+
+      '<div id="todayLine"></div>'+
+      '<div class="row" style="justify-content:flex-start"><button class="btn primary" data-act="nav" data-v="backup">Back up now</button><button class="btn" data-act="nav" data-v="board">Back to board</button><button class="btn quiet" data-act="again">Wrap up again</button></div></section>';
+  }else{
+    html+='<div id="todayLine"></div>';
+    var pile=active().filter(function(i){return i.lane==='pile'});
+    var open=active().filter(function(i){return i.lane!=='pile'&&i.lane!=='over'});
+    var over=active().filter(function(i){return i.lane==='over'});
+    var role=active().filter(function(i){return i.lane==='role'});
+
+    html+='<section class="card"><h2>Today at a glance</h2>';
+    if(!st.items.length){
+      html+='<p class="empty" style="padding:8px 0 0">Nothing on the board today yet.</p>';
+    }else{
+      html+='<p style="margin:6px 0 0;font-size:14px">'+st.items.length+(st.items.length===1?' item':' items')+' touched today, '+st.cooled.length+' cooled down.</p>';
+      LKEYS.forEach(function(k){
+        var l=st.by[k];if(!l.length)return;
+        html+='<div class="lrow"><span>'+esc(lname(k))+'</span><span class="cnt">'+l.length+'</span></div>'+distHTML(l);
+      });
+      if(st.cooled.length){
+        html+='<h3 style="margin-top:14px">Cooled down today</h3><ul class="wl">'+st.cooled.map(function(x){
+          return '<li><span class="txt">'+esc(x.it.text)+'</span><span class="ch">'+HN[x.from]+' to '+HN[x.it.heat]+'</span></li>';
+        }).join('')+'</ul>';
+      }
+    }
+    html+='</section>';
+
+    html+='<section class="card"><h2>Loose ends</h2>';
+    if(!pile.length)html+='<p class="empty" style="padding:8px 0 0">The pile is clear.</p>';
+    else{
+      html+='<p class="hint">Items still in the pile. Carrying is the default.</p>';
+      pile.forEach(function(it){
+        var d=ui.wrap.dec[it.id]||'carry';
+        html+='<div class="le"><div class="item static h'+it.heat+'"><span class="txt">'+esc(it.text)+'</span><span class="hl">'+HN[it.heat]+' heat</span></div>'+
+          '<div class="seg"><button data-act="sortnow" data-id="'+it.id+'" aria-pressed="false">Sort now</button>'+
+          '<button data-act="dec" data-id="'+it.id+'" data-d="carry" aria-pressed="'+(d==='carry')+'">Carry to tomorrow</button>'+
+          '<button data-act="dec" data-id="'+it.id+'" data-d="go" aria-pressed="'+(d==='go')+'">Let go</button></div></div>';
+      });
+    }
+    html+='</section>';
+
+    html+='<section class="card"><h2>Carry-over</h2>';
+    if(!open.length)html+='<p class="empty" style="padding:8px 0 0">No open items in your lanes.</p>';
+    else{
+      html+='<p class="hint">Checked items stay open tomorrow. Unchecked items are archived.</p><div style="margin-top:6px">';
+      open.forEach(function(it){
+        var chk=ui.wrap.keep[it.id]!==false;
+        html+='<label class="keep"><input type="checkbox" data-keep="'+it.id+'"'+(chk?' checked':'')+'><span><span class="txt">'+esc(it.text)+'</span><span class="hint" style="display:block;margin:0">'+esc(lname(it.lane))+'</span></span></label>';
+      });
+      html+='</div>';
+    }
+    html+='<p class="hint" style="margin-top:10px">'+(over.length?over.length+(over.length===1?' item in Already over gets':' items in Already over get')+' archived.':'Nothing in Already over to archive.')+'</p></section>';
+
+    if(role.length){
+      html+='<section class="card"><h2>Outside my role</h2><ul class="wl">'+role.map(function(it){
+        return '<li><span class="txt">'+esc(it.text)+'</span><span class="hint" style="margin:0;white-space:nowrap">'+fmtShort(it.created)+'</span></li>';
+      }).join('')+'</ul><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn small" data-act="copyrole">Copy for pay case log</button></div></section>';
+    }
+
+    html+='<section class="card"><h2>A line about today</h2>'+
+      '<label class="lbl" for="wnote" style="margin-top:6px">Optional</label>'+
+      '<textarea id="wnote" rows="1" maxlength="2000" placeholder="Write a line about today"></textarea>'+
+      (trec&&trec.note?'<p class="hint">Today\'s line is saved above. Anything you write here replaces it.</p>':'')+'</section>';
+
+    html+='<div class="row" style="justify-content:flex-start;margin-bottom:18px"><button class="btn primary" data-act="finish">Finish wrap-up</button></div>';
+  }
+
+  if(state.days.length){
+    html+='<section class="card"><h2>Past wrap-ups</h2><div style="margin-top:8px"><label class="lbl" for="pq">Search</label><input id="pq" type="search" placeholder="Search your lines"></div><div id="past"></div></section>';
+  }
+  view.innerHTML=html;
+  var wn=$('#wnote');
+  if(wn){wn.value=ui.wrap.note;autosize(wn)}
+  var pq=$('#pq');if(pq)pq.value=ui.wrap.pq;
+  renderLines();
+}
+function autosize(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,320)+'px'}
+function finishWrap(){
+  var st=todayStats(),n=0,t=now();
+  state.items.forEach(function(i){
+    if(i.archived)return;
+    var a=null;
+    if(i.lane==='over')a='over';
+    else if(i.lane==='pile'&&ui.wrap.dec[i.id]==='go')a='let go';
+    else if(i.lane!=='pile'&&ui.wrap.keep[i.id]===false)a='closed';
+    if(a){i.archived=true;i.archivedAt=t;i.archiveReason=a;n++}
+  });
+  var counts={};LKEYS.forEach(function(k){counts[k]=st.by[k].length});
+  var prev=dayRec(st.tk);
+  var rec={date:st.tk,at:t,note:ui.wrap.note.trim()||(prev&&prev.note)||'',touched:st.items.length,cooled:st.cooled.length,archived:n,counts:counts};
+  state.days=state.days.filter(function(d){return d.date!==st.tk});
+  state.days.push(rec);
+  save();
+  ui.undo=[];ui.wrap.note='';ui.wrap.dec={};ui.wrap.keep={};ui.wrap.editing=null;ui.wrap.again=false;ui.wrap.done={archived:n};
+  renderWrap();window.scrollTo(0,0);flash('Wrap-up saved.');
+}
+function copyRole(){
+  var lines=active().filter(function(i){return i.lane==='role'}).map(function(i){return fmtShort(i.created)+': '+i.text});
+  copyText(lines.join('\n')).then(function(ok){flash(ok?'Copied.':"Couldn't copy. Select the text and copy it yourself.")});
+}
+
+/* backup */
+function buildBackup(){
+  var fileNote=location.protocol==='file:'?'<p class="note" style="margin:8px 0 0">This board is saved by this browser, tied to where this file sits. Keep the file in one place. If you move or rename it, your data can look like it vanished, and a backup brings it back.</p>':'';
+  view.innerHTML=
+  '<section class="card stack"><h2>Back up</h2>'+
+    '<p class="note" style="margin:0">This makes one block of scrambled text. Paste it into an email to yourself. Nothing downloads.</p>'+
+    '<div><label class="lbl" for="pp1">Passphrase</label><input id="pp1" type="password" autocomplete="new-password"></div>'+
+    '<div><label class="lbl" for="pp2">Type it again</label><input id="pp2" type="password" autocomplete="new-password"></div>'+
+    '<div id="mkErr" class="err" role="alert"></div>'+
+    '<div><button class="btn primary" data-act="mk">Create encrypted backup</button></div>'+
+    '<div id="mkOut" hidden class="stack">'+
+      '<textarea id="bkText" class="mono" readonly rows="6" aria-label="Encrypted backup"></textarea>'+
+      '<div class="row" style="justify-content:flex-start"><button class="btn" data-act="copybk">Copy backup</button><span id="cpMsg" class="ok"></span></div>'+
+      '<p class="hint">Keep the passphrase out of that email. Nobody can recover it if it\'s lost, including me.</p>'+
+    '</div>'+
+  '</section>'+
+  '<section class="card stack"><h2>Restore</h2>'+
+    '<div><label class="lbl" for="rsText">Backup text</label><textarea id="rsText" class="mono" rows="5" placeholder="Paste the whole backup here"></textarea></div>'+
+    '<div><label class="lbl" for="rsPass">Passphrase</label><input id="rsPass" type="password" autocomplete="off"></div>'+
+    '<div id="rsMsg" role="alert"></div>'+
+    '<div><button class="btn" data-act="rs">Restore from backup</button></div>'+
+  '</section>'+
+  '<section class="card"><h2>Where your data lives</h2>'+
+    '<p class="note" style="margin:8px 0 0">Entries are saved in this browser as you go, not inside the HTML file, so a synced copy of the file holds nothing. Clearing site data or using a private window wipes the board, and work browsers sometimes clear data on restart or update. The backup is your safety net.</p>'+fileNote+
+  '</section>';
+}
+
+/*CRYPTO-START*/
+function b64e(u8){var s='',c=0x8000;for(var i=0;i<u8.length;i+=c)s+=String.fromCharCode.apply(null,u8.subarray(i,i+c));return btoa(s)}
+function b64d(s){var bin=atob(s),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u}
+async function deriveKey(pass,salt){
+  var km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:250000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function gz(u8){return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer())}
+async function gunz(u8){return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}
+async function encryptBackup(obj,pass){
+  var raw=new TextEncoder().encode(JSON.stringify(obj)),flag=0;
+  if(typeof CompressionStream!=='undefined'){raw=await gz(raw);flag=1}
+  var salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  var key=await deriveKey(pass,salt);
+  var ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,raw));
+  var out=new Uint8Array(30+ct.length);
+  out[0]=1;out[1]=flag;out.set(salt,2);out.set(iv,18);out.set(ct,30);
+  return b64e(out);
+}
+async function decryptBackup(b64,pass){
+  var u=b64d(b64);
+  if(u[0]!==1)throw new Error('format');
+  var flag=u[1],salt=u.slice(2,18),iv=u.slice(18,30),ct=u.slice(30);
+  var key=await deriveKey(pass,salt);
+  var pt=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,ct));
+  if(flag===1)pt=await gunz(pt);
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+/*CRYPTO-END*/
+
+async function doBackup(){
+  var err=$('#mkErr');err.textContent='';
+  var p1=$('#pp1').value,p2v=$('#pp2').value;
+  if(p1.length<8){err.textContent='Use at least 8 characters. A short phrase of a few words works well.';return}
+  if(p1!==p2v){err.textContent="The passphrases don't match.";return}
+  if(!window.crypto||!crypto.subtle){err.textContent="This browser doesn't support encryption here. Try a current version of Edge, Chrome, or Firefox.";return}
+  var btn=$('[data-act=mk]');btn.textContent='Encrypting…';
+  try{
+    var b=await encryptBackup({v:2,exported:now(),state:{items:state.items,days:state.days,nid:state.nid}},p1);
+    var out='SORTBOARD-BACKUP-START\n'+b.match(/.{1,64}/g).join('\n')+'\nSORTBOARD-BACKUP-END';
+    $('#bkText').value=out;$('#mkOut').hidden=false;$('#cpMsg').textContent='';
+    state.lastBackup=now();save();
+  }catch(e){err.textContent="Couldn't create the backup. Try again."}
+  btn.textContent='Create encrypted backup';
+}
+async function doRestore(){
+  var msg=$('#rsMsg');msg.className='err';msg.textContent='';
+  var raw=$('#rsText').value,pass=$('#rsPass').value;
+  if(!raw.trim()){msg.textContent='Paste the backup text first.';return}
+  if(!pass){msg.textContent='Enter the passphrase.';return}
+  if(!window.crypto||!crypto.subtle){msg.textContent="This browser doesn't support encryption here.";return}
+  var m=raw.match(/SORTBOARD-BACKUP-START([\s\S]*?)SORTBOARD-BACKUP-END/);
+  var b=(m?m[1]:raw).replace(/[^A-Za-z0-9+\/=]/g,'');
+  try{
+    var obj=await decryptBackup(b,pass);
+    var s=clean(obj&&obj.state);
+    if(!s)throw new Error('bad');
+    s.lastBackup=(obj&&typeof obj.exported==='number')?obj.exported:now();
+    ui.pending=s;
+    if(state.items.length||state.days.length){
+      msg.className='note';
+      msg.innerHTML='This backup has '+s.items.length+(s.items.length===1?' item':' items')+'. Restoring replaces the '+state.items.length+(state.items.length===1?' item':' items')+' on this board. <div style="margin-top:8px"><button class="btn danger small" data-act="confirmrs">Replace board data</button></div>';
+    }else applyRestore();
+  }catch(e){msg.textContent="That didn't work. Check the passphrase, and make sure you pasted the whole backup."}
+}
+function applyRestore(){
+  if(!ui.pending)return;
+  state=ui.pending;ui.pending=null;
+  ui.undo=[];ui.sel=null;
+  save();
+  var msg=$('#rsMsg');
+  if(msg){msg.className='ok';msg.textContent='Restored '+state.items.length+(state.items.length===1?' item.':' items.')}
+  $('#rsText').value='';$('#rsPass').value='';
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+  var t=e.target;
+  var a=t.closest('[data-act]');
+  if(a){handleAct(a);return}
+  var item=t.closest('[data-item]');
+  if(item&&ui.view==='board'){
+    var id=+item.dataset.item;
+    if(ui.sel!==null&&ui.sel!==id){
+      var x=getItem(ui.sel),y=getItem(id);
+      if(x&&y&&x.lane!==y.lane){place(y.lane);return}
+    }
+    select(id);return;
+  }
+  var lane=t.closest('[data-lane]');
+  if(lane&&ui.view==='board'&&ui.sel!==null)place(lane.dataset.lane);
+});
+
+function handleAct(a){
+  var act=a.dataset.act,id=a.dataset.id?+a.dataset.id:null;
+  switch(act){
+    case 'nav':setView(a.dataset.v);break;
+    case 'hide':
+      var on=document.body.classList.toggle('hide');
+      a.textContent=on?'Show text':'Hide text';a.setAttribute('aria-pressed',on);break;
+    case 'add':doAdd();break;
+    case 'caph':ui.capHeat=+a.dataset.h;$('#capHeat').innerHTML=heatSeg(ui.capHeat,'caph');break;
+    case 'undo':
+      if(!ui.undo.length){flash('Nothing to undo.');break}
+      undo();renderBoard();flash('Undone.');break;
+    case 'close':ui.sel=null;ui.dockOpen=false;ui.confirmDel=null;renderBoard();break;
+    case 'dock':ui.dockOpen=!ui.dockOpen;ui.confirmDel=null;renderDock();break;
+    case 'heat':
+      if(ui.sel!==null){setHeat(ui.sel,+a.dataset.h);renderPile();renderLanes();renderDock()}break;
+    case 'topile':
+      if(ui.sel!==null){moveItem(ui.sel,'pile');renderBoard()}break;
+    case 'hback':
+      if(LKEYS.indexOf(a.dataset.lane)>-1){moveItem(id,a.dataset.lane);renderBoard()}break;
+    case 'del':
+      if(ui.sel===null)break;
+      if(ui.confirmDel===ui.sel){
+        var did=ui.sel;
+        state.items=state.items.filter(function(i){return i.id!==did});
+        ui.undo=ui.undo.filter(function(u){return u.id!==did});
+        ui.sel=null;ui.confirmDel=null;ui.dockOpen=false;save();renderBoard();flash('Deleted.');
+      }else{ui.confirmDel=ui.sel;renderDock()}
+      break;
+    case 'restore':
+      var r=getItem(id);
+      if(r){r.archived=false;r.archivedAt=null;r.archiveReason=null;if(r.lane!=='pile')moveItem(id,'pile',true);save();renderCatalog();flash('Restored to the pile.')}
+      break;
+    case 'openboard':ui.sel=id;setView('board');ui.sel=id;renderBoard();break;
+    case 'sortnow':ui.sel=id;setView('board');ui.sel=id;renderBoard();break;
+    case 'dec':ui.wrap.dec[id]=a.dataset.d;renderWrap();break;
+    case 'finish':finishWrap();break;
+    case 'editline':
+      var er=dayRec(a.dataset.date);
+      if(er){ui.wrap.editing=er.date;ui.wrap.editText=er.note||'';ui.wrap.open[er.date]=true;renderLines();var ef=$('#eline');if(ef)ef.focus()}break;
+    case 'saveline':
+      var sr=dayRec(a.dataset.date);
+      if(sr){sr.note=ui.wrap.editText.trim();save();flash('Line saved.')}
+      ui.wrap.editing=null;renderLines();break;
+    case 'cancelline':ui.wrap.editing=null;renderLines();break;
+    case 'toggleday':
+      var dk=a.dataset.date,isOpen=!!ui.wrap.open[dk]||ui.wrap.editing===dk;
+      ui.wrap.open[dk]=!isOpen;if(isOpen&&ui.wrap.editing===dk)ui.wrap.editing=null;
+      renderLines();break;
+    case 'showall':ui.wrap.showAll=!ui.wrap.showAll;renderLines();break;
+    case 'again':ui.wrap.again=true;renderWrap();window.scrollTo(0,0);break;
+    case 'copyrole':copyRole();break;
+    case 'mk':doBackup();break;
+    case 'copybk':
+      copyText($('#bkText').value).then(function(ok){$('#cpMsg').textContent=ok?'Copied.':"Couldn't copy. Select the text and copy it yourself."});break;
+    case 'rs':doRestore();break;
+    case 'confirmrs':applyRestore();break;
+  }
+}
+
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='cq'){ui.cat.q=t.value;renderCatalog()}
+  else if(t.id==='wnote'){ui.wrap.note=t.value;autosize(t)}
+  else if(t.id==='eline'){ui.wrap.editText=t.value;autosize(t)}
+  else if(t.id==='pq'){ui.wrap.pq=t.value;renderLines()}
+  else if(t.id==='txt'){var er=$('#err');if(er)er.textContent=''}
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.dataset&&t.dataset.cf){ui.cat[t.dataset.cf]=t.value;renderCatalog()}
+  else if(t.dataset&&t.dataset.keep){ui.wrap.keep[+t.dataset.keep]=t.checked}
+  else if(t.id==='selText'&&ui.sel!==null){
+    var it=getItem(ui.sel),v=t.value.trim();
+    if(!it)return;
+    if(!v){t.value=it.text;return}
+    it.text=v;save();renderPile();renderLanes();
+    var dt=$('.dtxt');if(dt)dt.textContent=v;
+  }
+});
+document.addEventListener('keydown',function(e){
+  var t=e.target;
+  if(e.key==='Enter'&&t.id==='txt'){e.preventDefault();doAdd();return}
+  if(e.key==='Enter'&&t.id==='selText'){e.preventDefault();t.blur();return}
+  if((e.key==='Enter'||e.key===' ')&&t.matches&&t.matches('[data-item]')){e.preventDefault();t.click();return}
+  if(e.key==='Escape'&&ui.view==='board'&&ui.sel!==null&&t.tagName!=='INPUT'){ui.sel=null;ui.dockOpen=false;renderBoard()}
+});
+
+/* drag and drop (desktop) */
+function clearOver(){document.querySelectorAll('.over').forEach(function(x){x.classList.remove('over')})}
+document.addEventListener('dragstart',function(e){
+  var it=e.target.closest&&e.target.closest('[data-item]');
+  if(!it)return;
+  ui.drag=+it.dataset.item;
+  e.dataTransfer.setData('text/plain',String(ui.drag));
+  e.dataTransfer.effectAllowed='move';
+  it.classList.add('dragging');
+});
+document.addEventListener('dragend',function(){
+  ui.drag=null;clearOver();
+  document.querySelectorAll('.dragging').forEach(function(x){x.classList.remove('dragging')});
+});
+document.addEventListener('dragover',function(e){
+  if(ui.drag===null)return;
+  var l=e.target.closest&&e.target.closest('[data-lane]');
+  if(!l)return;
+  e.preventDefault();
+  if(!l.classList.contains('over')){clearOver();l.classList.add('over')}
+});
+document.addEventListener('drop',function(e){
+  if(ui.drag===null)return;
+  var l=e.target.closest&&e.target.closest('[data-lane]');
+  if(!l)return;
+  e.preventDefault();
+  var id=ui.drag;ui.drag=null;clearOver();
+  moveItem(id,l.dataset.lane);
+  ui.sel=null;ui.dockOpen=false;ui.confirmDel=null;
+  renderBoard();
+});
+
+/* start */
+document.getElementById('warn').hidden=ui.saveOk;
+updateBk();
+setView('board');
+})();
+</script>
+<noscript>This tool needs JavaScript turned on.</noscript>
+</body>
+</html>
